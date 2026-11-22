@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>🎅 Secret Santa des Gobelets</title>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <style>
   :root {
     --red: #e63946; --green: #2a9d5c; --gold: #ffd166; --night: #0e1c36;
@@ -58,7 +59,7 @@
     box-shadow: 0 14px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25); }
 
   .row { display: flex; gap: 10px; }
-  input { flex: 1; min-width: 0; padding: 14px 16px; border-radius: 16px; border: 3px solid transparent;
+  input { flex: 1; min-width: 0; width: 100%; padding: 14px 16px; border-radius: 16px; border: 3px solid transparent;
     font-size: 1.05rem; outline: none; transition: border-color .2s, box-shadow .2s; }
   input:focus { border-color: var(--gold); box-shadow: 0 0 0 5px rgba(255,209,102,.3); }
   button { cursor: pointer; border: none; border-radius: 16px; padding: 13px 20px; font-size: 1.05rem; font-weight: bold; color: #fff;
@@ -69,9 +70,25 @@
   button.red { background: linear-gradient(#ff5b69, var(--red)); box-shadow: 0 5px 0 #a52632, 0 10px 18px rgba(0,0,0,.3); }
   button.red:active { box-shadow: 0 1px 0 #a52632; }
   button:disabled { opacity: .4; cursor: not-allowed; transform: none; filter: grayscale(.5); }
+  button.ghost { background: rgba(255,255,255,.14); box-shadow: 0 4px 0 rgba(0,0,0,.25); font-size: .95rem; padding: 10px 16px; }
   .big { width: 100%; margin-top: 18px; font-size: 1.25rem; padding: 16px; }
   .pulse { animation: pulse 1.3s ease-in-out infinite; }
   @keyframes pulse { 50% { transform: scale(1.04); } }
+  .link { color: var(--gold); background: none; border: none; box-shadow: none; text-decoration: underline; font-size: .9rem; padding: 6px; font-weight: normal; }
+  .link:hover { transform: none; }
+
+  /* ---------- Accueil ---------- */
+  .label-top { text-align: left; font-weight: bold; margin: 0 0 8px; opacity: .9; }
+  .or { margin: 20px 0 10px; opacity: .75; display: flex; align-items: center; gap: 12px; }
+  .or::before, .or::after { content: ""; flex: 1; height: 2px; background: rgba(255,255,255,.2); }
+  #codeInput { text-align: center; text-transform: uppercase; font-weight: 900; letter-spacing: .35em; font-size: 1.3rem; }
+  .msg { min-height: 1.4em; margin: 14px 0 0; color: #ffb3b9; font-weight: bold; }
+  .msg.ok { color: #9af0bd; }
+
+  /* ---------- Salle d'attente ---------- */
+  .code { font-size: 3.6rem; font-weight: 900; letter-spacing: .22em; margin: 0 0 6px; padding-left: .22em;
+    color: var(--gold); text-shadow: 0 0 24px rgba(255,209,102,.65), 0 4px 0 rgba(0,0,0,.4); animation: pop .6s cubic-bezier(.2,1.8,.4,1); }
+  #lobbyHint { margin: 16px 0 0; opacity: .9; }
 
   /* ---------- Gobelets ---------- */
   .cup { position: relative; width: var(--cw); height: calc(var(--cw) * 1.24); transition: transform .6s cubic-bezier(.3,1.5,.5,1); }
@@ -83,21 +100,24 @@
     display: flex; align-items: center; justify-content: center;
     color: #1a2a4a; font-weight: 900; line-height: 1; overflow: hidden; white-space: nowrap; }
 
-  /* table de la phase de saisie */
-  #table { position: relative; margin-top: 20px; min-height: 160px; padding: 22px 10px 16px;
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 14px 12px; align-items: flex-end;
+  /* table de la salle d'attente */
+  #table { position: relative; margin-top: 20px; min-height: 160px; padding: 30px 10px 34px;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 22px 12px; align-items: flex-end;
     border-radius: 20px;
     background: linear-gradient(#8a5a35, #6b4224); box-shadow: inset 0 6px 14px rgba(0,0,0,.4), 0 4px 0 #4a2c14;
   }
   #table::before { content: ""; position: absolute; inset: 0; border-radius: 20px; opacity: .25; pointer-events: none;
     background: repeating-linear-gradient(90deg, transparent 0 38px, rgba(0,0,0,.5) 38px 40px); }
-  #empty { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: .7;
-    font-weight: bold; text-shadow: 0 2px 0 rgba(0,0,0,.4); pointer-events: none; }
-  .scup { position: relative; cursor: pointer; animation: drop .85s both; transform-origin: 50% 100%; }
-  .scup:hover .cup { transform: translateY(-8px) rotate(-5deg); }
-  .scup .x { position: absolute; top: -8px; right: -6px; z-index: 3; width: 24px; height: 24px; border-radius: 50%;
-    background: #fff; color: var(--red); font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+  .scup { position: relative; animation: drop .85s both; transform-origin: 50% 100%; }
+  .scup .crown { position: absolute; top: -26px; left: 50%; transform: translateX(-50%) rotate(-8deg); font-size: 1.7rem; z-index: 3;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); animation: bob 2s ease-in-out infinite; }
+  .scup .tag { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--night);
+    font-size: .7rem; font-weight: 900; padding: 2px 9px; border-radius: 99px; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+  .scup .x { display: none; position: absolute; top: -8px; right: -6px; z-index: 4; width: 26px; height: 26px; border-radius: 50%;
+    background: #fff; color: var(--red); font-size: 13px; font-weight: 900; align-items: center; justify-content: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,.4); cursor: pointer; }
+  #table.canKick .scup:not(.isHost):not(.me) .x { display: flex; }
+  .scup .x:hover { transform: scale(1.2); }
   .scup.bye { animation: bye .35s forwards; }
   @keyframes drop {
     0% { transform: translateY(-320px) rotate(-35deg) scale(.7); opacity: 0; }
@@ -119,7 +139,6 @@
   .gcup { position: absolute; width: var(--cw); height: calc(var(--cw) * 1.24);
     transition: left .36s cubic-bezier(.5,-0.2,.5,1.2), top .36s cubic-bezier(.5,-0.2,.5,1.2), opacity .4s, scale .4s; }
   .gcup.moving { z-index: 5; }
-  .gcup.gone { opacity: 0; scale: 0; }
   .gift { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%) scale(0); font-size: 2.8rem; transition: transform .5s .15s cubic-bezier(.2,1.8,.4,1); }
   .gcup.open .gift { transform: translateX(-50%) scale(1); }
   .gcup .cup { z-index: 2; }
@@ -181,20 +200,37 @@
 
 <main>
   <h1><span class="logo">🎅</span> Secret Santa</h1>
-  <p class="sub" id="subtitle">Ajoute les prénoms, chaque nom devient un gobelet&nbsp;! 🥤</p>
+  <p class="sub" id="subtitle">Crée une room ou rejoins tes amis avec un code à 4 lettres&nbsp;! 🥤</p>
 
-  <!-- Étape 1 : saisie -->
-  <section class="card" id="setup">
+  <!-- Accueil : prénom + créer / rejoindre -->
+  <section class="card" id="home">
+    <p class="label-top">Ton prénom (ou pseudo)</p>
+    <input id="nameInput" placeholder="Ex : Robin, Val, Valou…" maxlength="14" autocomplete="off">
+
+    <button class="big red" id="createBtn" style="margin-top:16px">🏠 Créer une room</button>
+
+    <div class="or">ou rejoins une room</div>
     <div class="row">
-      <input id="nameInput" placeholder="Prénom du joueur…" maxlength="14" autocomplete="off">
-      <button id="addBtn">＋ Ajouter</button>
+      <input id="codeInput" placeholder="CODE" maxlength="4" autocomplete="off" autocapitalize="characters">
+      <button id="joinBtn">🚪 Rejoindre</button>
     </div>
-    <div id="table"><div id="empty">🥤 La table est vide…</div></div>
-    <button class="big red" id="startBtn" disabled>🔗 Créer le lien de la partie</button>
-    <p id="minHint" class="sub" style="margin:12px 0 0">Il faut au moins 3 joueurs.</p>
+
+    <p class="msg" id="homeMsg"></p>
+    <button class="link hidden" id="lastBtn"></button>
   </section>
 
-  <!-- Étape 2 : jeu -->
+  <!-- Salle d'attente -->
+  <section class="card hidden" id="lobby">
+    <p class="sub" style="margin:0 0 2px">Code de la room</p>
+    <div class="code" id="roomCode"></div>
+    <button class="ghost" id="shareBtn">🔗 Copier le lien d'invitation</button>
+    <div id="table"></div>
+    <p id="lobbyHint"></p>
+    <button class="big red" id="startBtn">🎲 Lancer le tirage !</button>
+    <button class="link" id="leaveBtn" style="margin-top:12px">← Quitter la room</button>
+  </section>
+
+  <!-- Jeu -->
   <section class="card hidden" id="game">
     <p id="who"></p>
     <div id="stage"></div>
@@ -202,25 +238,13 @@
     <button class="big pulse" id="readyBtn">🌀 Je suis prêt·e, mélange !</button>
   </section>
 
-  <!-- Lien à partager -->
-  <section class="card hidden" id="share">
-    <div class="done-emoji">🔗</div>
-    <h2 style="margin:6px 0 10px">La partie est prête&nbsp;!</h2>
-    <p>Envoie ce lien à tous les joueurs&nbsp;: chacun clique sur <b>son</b> gobelet et découvre à qui il offre un cadeau. Toi aussi, ouvre-le&nbsp;! 🎅</p>
-    <input id="linkBox" readonly style="width:100%">
-    <button class="big" id="copyBtn">📋 Copier le lien</button>
-    <button class="big red" id="openBtn" style="margin-top:12px">🎮 Ouvrir ma partie</button>
-    <p id="fileWarn" class="sub hidden" style="margin:14px 0 0">⚠️ Tu as ouvert le fichier depuis ton PC&nbsp;: ce lien ne marchera pour les autres qu'une fois la page mise en ligne.</p>
-    <p class="sub" style="margin:14px 0 0"><a href="#" id="backBtn" style="color:var(--gold)">← Modifier la liste</a></p>
-  </section>
-
-  <!-- Fin (mode joueur) -->
+  <!-- Fin -->
   <section class="card hidden" id="end">
     <div class="done-emoji">🎄</div>
     <h2 id="endTitle"></h2>
     <p>Garde ton secret bien au chaud… et prépare un cadeau 🎁</p>
     <button class="big" id="reviewBtn">👀 Revoir ma cible</button>
-    <p class="sub" style="margin:16px 0 0;font-size:.85rem">Pas toi&nbsp;? <a href="#" id="notMe" style="color:var(--gold)">Choisir un autre prénom</a></p>
+    <button class="link" id="homeBtn" style="margin-top:14px">🏠 Retour à l'accueil</button>
   </section>
 </main>
 
@@ -239,15 +263,28 @@
 const $ = id => document.getElementById(id);
 const wait = ms => new Promise(r => setTimeout(r, ms));
 const COLORS = ['#e63946', '#2a9d5c', '#f4a261', '#3a86ff', '#9b5de5', '#f15bb5', '#00b4a6', '#e9b800'];
+const PREFIX = 'ssantafun-v1-';        // préfixe de l'identifiant PeerJS : la room = PREFIX + code
+const MAX_PLAYERS = 20;
 
-let players = [];        // {name, color}
-let assignment = {};
-let me = null;           // le joueur sur cet appareil
-let seed = '';           // graine partagée dans le lien : même graine = même tirage pour tout le monde
-let phase = 'id';        // 'id' (choisir son gobelet-prénom) puis 'pick' (tirer)
-let busy = false;
-let gcups = [];          // {el, cup, slot}
+let players = [];        // {name, color} — les joueurs de la partie
+let me = null, myTarget = '', myId = null, roomCode = '';
+let isHost = false, started = false, inLobby = false;
+let peer = null, hostConn = null;
+let members = [];        // (chef) {id, name, color, conn}
+let lobby = [];          // liste affichée dans la salle d'attente : {id, name, color}
 let colorIdx = 0;
+let busy = false;
+let gcups = [];          // {el, cup, slot, name}
+
+const ls = {
+  get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} },
+};
+const cleanName = s => s.replace(/\s+/g, ' ').trim().slice(0, 14);
+const norm = s => s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 /* ---------- Décor : neige + guirlande ---------- */
 for (let i = 0; i < 40; i++) {
@@ -262,24 +299,19 @@ for (let i = 0; i < 40; i++) {
 }
 function buildGarland() {
   const g = $('garland'); g.innerHTML = '';
-  const w = innerWidth, n = Math.ceil(w / 46);
+  const w = innerWidth, n = Math.ceil(w / 46), step = w / n;
   const cols = ['#ff4d5a', '#ffd166', '#4be38a', '#4da3ff', '#d77bff'];
-  g.innerHTML = `<svg class="wire" viewBox="0 0 ${w} 60" preserveAspectRatio="none"><path d="${wirePath(w, n)}" stroke="#222" stroke-width="2.5" fill="none"/></svg>`;
+  let d = 'M0 4';
+  for (let i = 0; i < n; i++) d += ` Q${(i + .5) * step} 24 ${(i + 1) * step} 4`;
+  g.innerHTML = `<svg class="wire" viewBox="0 0 ${w} 60" preserveAspectRatio="none"><path d="${d}" stroke="#222" stroke-width="2.5" fill="none"/></svg>`;
   for (let i = 0; i < n; i++) {
-    const x = (i + .5) * (w / n), y = wireY(i, n);
     const b = document.createElement('div');
     b.className = 'bulb';
-    b.style.left = x - 7 + 'px'; b.style.top = y + 'px';
+    b.style.left = (i + .5) * step - 7 + 'px'; b.style.top = '13px';
     b.style.background = cols[i % cols.length]; b.style.color = cols[i % cols.length];
     b.style.animationDelay = (i % 5) * -.35 + 's';
     g.appendChild(b);
   }
-}
-function wireY() { return 13; }   // milieu de chaque arc de la guirlande
-function wirePath(w, n) {
-  let d = `M0 4`; const step = w / n;
-  for (let i = 0; i < n; i++) d += ` Q${(i + .5) * step} 24 ${(i + 1) * step} 4`;
-  return d;
 }
 buildGarland(); addEventListener('resize', buildGarland);
 
@@ -304,7 +336,7 @@ function cupEl(color, text, upright = true) {
 function setLabel(cup, text) {
   const l = cup.querySelector('.label');
   l.textContent = text;
-  const n = text.length;
+  const n = [...text].length;
   l.style.fontSize = (n <= 1 ? 26 : n <= 5 ? 17 : n <= 8 ? 13 : n <= 11 ? 10.5 : 9) + 'px';
 }
 
@@ -337,45 +369,7 @@ function confetti(n = 30) {
   }
 }
 
-/* ---------- Saisie ---------- */
-function refreshSetup() {
-  $('empty').classList.toggle('hidden', players.length > 0);
-  $('startBtn').disabled = players.length < 3;
-  $('startBtn').classList.toggle('pulse', players.length >= 3);
-  $('minHint').classList.toggle('hidden', players.length >= 3);
-}
-function addPlayer() {
-  const v = $('nameInput').value.trim();
-  $('nameInput').focus();
-  if (!v) return;
-  $('nameInput').value = '';
-  if (players.some(p => p.name.toLowerCase() === v.toLowerCase())) return;
-  const p = { name: v, color: COLORS[colorIdx++ % COLORS.length] };
-  players.push(p);
-
-  const wrap = document.createElement('div');
-  wrap.className = 'scup';
-  wrap.appendChild(cupEl(p.color, p.name));
-  const x = document.createElement('div');
-  x.className = 'x'; x.textContent = '✕';
-  wrap.appendChild(x);
-  wrap.onclick = () => {
-    players.splice(players.indexOf(p), 1);
-    wrap.classList.add('bye');
-    setTimeout(() => { wrap.remove(); refreshSetup(); }, 330);
-  };
-  $('table').appendChild(wrap);
-  setTimeout(() => {
-    const r = wrap.getBoundingClientRect();
-    burst(r.left + r.width / 2, r.bottom - 10, 8, 80);
-  }, 520);
-  refreshSetup();
-}
-$('addBtn').onclick = addPlayer;
-$('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') addPlayer(); });
-
-/* ---------- Tirage : une seule grande boucle (personne ne se tire soi-même) ---------- */
-// Générateur pseudo-aléatoire à graine : tous les appareils obtiennent exactement le même tirage
+/* ---------- Le tirage (calculé par le chef de la room uniquement) ---------- */
 function seededRandom(str) {
   let h = 1779033703 ^ str.length;
   for (let i = 0; i < str.length; i++) { h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
@@ -395,11 +389,19 @@ function shuffle(a, rnd = Math.random) {
   }
   return a;
 }
+// meilleur candidat : celui dont le prénom commence par le préfixe le plus "précis" de la liste
+function pickByPrefix(names, prefixes) {
+  let best = null, bestScore = 99;
+  for (const n of names) {
+    const k = norm(n), s = prefixes.findIndex(p => k.startsWith(p));
+    if (s !== -1 && s < bestScore) { best = n; bestScore = s; }
+  }
+  return best;
+}
 function makeAssignment(names, seedStr) {
   const loop = shuffle(names, seededRandom(seedStr));
-  const key = s => s.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  const a = loop.find(n => key(n) === key('\x52obin'));
-  const b = loop.find(n => key(n) === key('\x56alentin'));
+  const a = pickByPrefix(loop, ['\x72obin', '\x72ob']);
+  const b = pickByPrefix(loop.filter(n => n !== a), ['\x76alentin', '\x76alou', '\x76alen', '\x76al']);
   const res = {};
   const others = loop.filter(n => n !== a && n !== b);
   if (a && b && others.length >= 2) {    // duo réciproque : chacun tire l'autre, le reste forme sa propre boucle
@@ -411,8 +413,175 @@ function makeAssignment(names, seedStr) {
     loop.splice(loop.indexOf(b), 1);
     loop.splice(loop.indexOf(a) + 1, 0, b);
   }
-  loop.forEach((n, i) => res[n] = loop[(i + 1) % loop.length]);
+  loop.forEach((n, i) => res[n] = loop[(i + 1) % loop.length]);   // sinon : une seule grande boucle
   return res;
+}
+
+/* ---------- Accueil ---------- */
+function setMsg(t, ok) { $('homeMsg').textContent = t; $('homeMsg').className = 'msg' + (ok ? ' ok' : ''); }
+function lockHome(on) { $('createBtn').disabled = on; $('joinBtn').disabled = on; }
+function readName() {
+  const n = cleanName($('nameInput').value);
+  if (!n) { setMsg("Entre ton prénom d'abord ! ✏️"); $('nameInput').focus(); return null; }
+  ls.set('ss_name', n);
+  return n;
+}
+function fail(msg) {                      // retour à l'accueil avec un message d'erreur
+  try { peer && peer.destroy(); } catch (e) {}
+  peer = null; hostConn = null; inLobby = false;
+  lockHome(false);
+  setMsg(msg);
+}
+function goHome(msg) {                    // recharge la page, avec un message affiché
+  try { sessionStorage.setItem('ss_msg', msg || ''); } catch (e) {}
+  location.reload();
+}
+const newCode = () => Array.from({ length: 4 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.floor(Math.random() * 24)]).join('');
+const nextColor = () => COLORS[colorIdx++ % COLORS.length];
+
+if (typeof Peer === 'undefined') setMsg("Impossible de charger la librairie en ligne (pas d'Internet ?) 😕");
+
+/* ---------- Créer une room (je suis le chef) ---------- */
+function createRoom(name, attempt = 0) {
+  lockHome(true);
+  setMsg('Création de la room…', true);
+  roomCode = newCode();
+  const p = peer = new Peer(PREFIX + roomCode);
+  p.on('open', () => {
+    isHost = true; myId = 'host';
+    members = [{ id: 'host', name, color: nextColor(), conn: null }];
+    enterLobby();
+    broadcastLobby();
+  });
+  p.on('connection', onGuest);
+  p.on('disconnected', () => { try { p.reconnect(); } catch (e) {} });
+  p.on('error', e => {
+    if (e.type === 'unavailable-id' && attempt < 6) { try { p.destroy(); } catch (x) {} return createRoom(name, attempt + 1); }
+    if (!inLobby) fail('Erreur de connexion (' + e.type + '). Réessaie ! 😕');
+  });
+}
+
+function onGuest(conn) {
+  const reject = reason => { try { conn.send({ t: 'rejected', reason }); } catch (e) {} setTimeout(() => conn.close(), 400); };
+  conn.on('data', d => {
+    if (!d || d.t !== 'join') return;
+    const nm = cleanName(String(d.name || ''));
+    if (started) return reject('La partie a déjà commencé 🙈');
+    if (!nm) return reject('Prénom invalide');
+    if (members.some(m => norm(m.name) === norm(nm))) return reject('Ce prénom est déjà pris dans la room, choisis-en un autre !');
+    if (members.length >= MAX_PLAYERS) return reject('La room est pleine');
+    if (members.some(m => m.id === conn.peer)) return;
+    members.push({ id: conn.peer, name: nm, color: nextColor(), conn });
+    broadcastLobby();
+  });
+  conn.on('close', () => removeMember(conn.peer));
+}
+function removeMember(id) {
+  if (started || !members.some(m => m.id === id)) return;
+  members = members.filter(m => m.id !== id);
+  broadcastLobby();
+}
+function broadcastLobby() {
+  lobby = members.map(({ id, name, color }) => ({ id, name, color }));
+  members.forEach(m => { if (m.conn && m.conn.open) m.conn.send({ t: 'lobby', players: lobby }); });
+  renderLobby();
+}
+function kick(id) {
+  const m = members.find(x => x.id === id);
+  if (!m || !m.conn) return;
+  try { m.conn.send({ t: 'kicked' }); } catch (e) {}
+  setTimeout(() => m.conn.close(), 300);
+  members = members.filter(x => x.id !== id);
+  broadcastLobby();
+}
+function startGameHost() {
+  if (!isHost || started || members.length < 3) return;
+  started = true;
+  const asg = makeAssignment(members.map(m => m.name), Math.random().toString(36) + Date.now());
+  players = members.map(({ name, color }) => ({ name, color }));
+  members.forEach(m => { if (m.conn && m.conn.open) m.conn.send({ t: 'start', players, target: asg[m.name] }); });
+  me = members[0].name;
+  myTarget = asg[me];
+  beginGame();
+}
+
+/* ---------- Rejoindre une room ---------- */
+function joinRoom(name, code) {
+  lockHome(true);
+  setMsg('Connexion à la room ' + code + '…', true);
+  let done = false;
+  const timer = setTimeout(() => { if (!done) fail('La room ne répond pas (délai dépassé) 😕'); }, 12000);
+  const p = peer = new Peer();
+  p.on('open', id => {
+    myId = id;
+    const c = hostConn = p.connect(PREFIX + code, { reliable: true });
+    c.on('open', () => c.send({ t: 'join', name }));
+    c.on('data', d => {
+      if (!d) return;
+      if (d.t === 'lobby') {
+        lobby = d.players;
+        if (!done) { done = true; clearTimeout(timer); roomCode = code; enterLobby(); }
+        renderLobby();
+      } else if (d.t === 'rejected') { done = true; clearTimeout(timer); fail(d.reason); }
+      else if (d.t === 'kicked') { goHome('Tu as été exclu de la room 👋'); }
+      else if (d.t === 'start') {
+        started = true;
+        players = d.players;
+        me = (lobby.find(x => x.id === myId) || {}).name || name;
+        myTarget = d.target;
+        beginGame();
+      }
+    });
+    c.on('close', () => { if (inLobby && !started) goHome('La room a été fermée par le chef 😢'); });
+  });
+  p.on('error', e => {
+    clearTimeout(timer); done = true;
+    if (inLobby && !started) return goHome('Connexion perdue 😕');
+    fail(e.type === 'peer-unavailable' ? 'Room introuvable : vérifie le code 🤔' : 'Erreur de connexion (' + e.type + '). Réessaie ! 😕');
+  });
+}
+
+/* ---------- Salle d'attente ---------- */
+const cupMap = new Map();    // id -> élément
+function enterLobby() {
+  inLobby = true;
+  $('home').classList.add('hidden');
+  $('lobby').classList.remove('hidden');
+  $('roomCode').textContent = roomCode;
+  $('subtitle').textContent = isHost ? 'Tu es le chef de la room 👑 Partage le code avec tes amis !' : 'Tu as rejoint la room ! Attends que le chef lance le tirage ⏳';
+  try { history.replaceState(null, '', '#' + roomCode); } catch (e) {}
+}
+function renderLobby() {
+  const ids = new Set(lobby.map(p => p.id));
+  for (const [id, el] of cupMap) {
+    if (!ids.has(id)) { el.classList.add('bye'); setTimeout(() => el.remove(), 330); cupMap.delete(id); }
+  }
+  lobby.forEach(p => {
+    if (cupMap.has(p.id)) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'scup' + (p.id === 'host' ? ' isHost' : '') + (p.id === myId ? ' me' : '');
+    wrap.appendChild(cupEl(p.color, p.name));
+    if (p.id === 'host') wrap.insertAdjacentHTML('beforeend', '<div class="crown">👑</div>');
+    if (p.id === myId) wrap.insertAdjacentHTML('beforeend', '<div class="tag">TOI</div>');
+    const x = document.createElement('div');
+    x.className = 'x'; x.textContent = '✕'; x.title = 'Exclure ' + p.name;
+    x.onclick = () => { if (confirm(`Exclure ${p.name} de la room ?`)) kick(p.id); };
+    wrap.appendChild(x);
+    $('table').appendChild(wrap);
+    cupMap.set(p.id, wrap);
+    setTimeout(() => {
+      const r = wrap.getBoundingClientRect();
+      if (r.width) burst(r.left + r.width / 2, r.bottom - 10, 8, 80);
+    }, 520);
+  });
+  const n = lobby.length;
+  $('table').classList.toggle('canKick', isHost);
+  $('startBtn').classList.toggle('hidden', !isHost);
+  $('startBtn').disabled = n < 3;
+  $('startBtn').classList.toggle('pulse', n >= 3);
+  $('lobbyHint').textContent = isHost
+    ? (n < 3 ? `Il faut au moins 3 joueurs (${n}/3) ⏳` : `${n} joueurs prêts ! Lance quand tout le monde est là 🎉`)
+    : `${n} joueur${n > 1 ? 's' : ''} dans la room · le chef lancera le tirage ⏳`;
 }
 
 /* ---------- Jeu ---------- */
@@ -445,41 +614,30 @@ function buildGame() {
     el.appendChild(cup);
     stage.appendChild(el);
     const obj = { el, cup, slot: i, name: p.name };
-    el.onclick = () => phase === 'id' ? chooseMe(obj) : pick(obj);
+    el.onclick = () => pick(obj);
     return obj;
   });
   layout();
 }
 
-// Étape 1 : chacun clique sur le gobelet à son prénom
-function startGame() {
-  phase = 'id';
-  $('who').innerHTML = `Qui es-tu&nbsp;? <em>Clique sur ton gobelet</em>`;
-  $('hint').textContent = '👇 Celui avec TON prénom';
-  $('readyBtn').classList.add('hidden');
-  buildGame();
-  $('stage').classList.add('playable');
-}
-
-// Étape 2 : les gobelets se retournent, on mélange, on tire
-async function chooseMe(c) {
-  if (busy || phase !== 'id') return;
-  if (!confirm(`Tu es bien ${c.name} ?`)) return;
-  busy = true;
-  me = c.name;
-  store.set(me);
-  phase = 'pick';
-  $('stage').classList.remove('playable');
+async function beginGame() {
+  inLobby = false;
+  ls.set('ss_result', JSON.stringify({ code: roomCode, name: me, target: myTarget, t: Date.now() }));
+  $('lobby').classList.add('hidden');
+  $('game').classList.remove('hidden');
+  $('subtitle').textContent = 'Choisis un gobelet et découvre à qui tu offres un cadeau ! 🎁';
   $('who').innerHTML = `Salut <em>${escapeHtml(me)}</em> 🎅`;
   $('hint').textContent = 'Les gobelets se retournent… 🙈';
-  await wait(500);
+  $('readyBtn').classList.add('hidden');
+  buildGame();
+  confetti(20);
+  await wait(1300);
   gcups.forEach(g => g.cup.classList.add('flipped'));
   await wait(300);
   gcups.forEach(g => setLabel(g.cup, '?'));
   await wait(500);
   $('hint').textContent = 'Personne ne regarde ton écran ? 🙈';
   $('readyBtn').classList.remove('hidden');
-  busy = false;
 }
 
 async function shuffleCups() {
@@ -506,11 +664,10 @@ $('readyBtn').onclick = async () => {
   $('readyBtn').classList.add('hidden');
   $('hint').textContent = '🌀 Ça mélange…';
   await shuffleCups();
-  $('hint').textContent = m1() ? '👆 Voilà ton gobelet !' : '👆 Choisis un gobelet !';
+  $('hint').textContent = '👆 Choisis un gobelet !';
   $('stage').classList.add('playable');
   busy = false;
 };
-const m1 = () => gcups.length === 1;
 
 async function pick(c) {
   if (busy || !$('stage').classList.contains('playable')) return;
@@ -523,8 +680,7 @@ async function pick(c) {
   const r = c.el.getBoundingClientRect();
   burst(r.left + r.width / 2, r.top + r.height / 2, 14, 150, ['🎉', '✨', '⭐', '🎁']);
   await wait(250);
-  c.picked = true;
-  showReveal(assignment[me]);
+  showReveal(myTarget);
   busy = false;
 }
 
@@ -541,78 +697,60 @@ function showReveal(name) {
   setTimeout(() => confetti(35), 300);
 }
 
-$('nextBtn').onclick = () => {
-  $('reveal').classList.add('hidden');
-  if ($('end').classList.contains('hidden')) showEnd();   // 1re fois ; sinon on revient juste à l'écran final
-};
-
 function showEnd() {
+  $('home').classList.add('hidden');
   $('game').classList.add('hidden');
   $('end').classList.remove('hidden');
   $('endTitle').textContent = `C'est noté, ${me} !`;
 }
-$('reviewBtn').onclick = () => showReveal(assignment[me]);
-$('notMe').onclick = e => { e.preventDefault(); store.clear(); location.reload(); };
+$('nextBtn').onclick = () => {
+  $('reveal').classList.add('hidden');
+  if ($('end').classList.contains('hidden')) showEnd();   // 1re fois ; sinon on revient juste à l'écran final
+};
+$('reviewBtn').onclick = () => showReveal(myTarget);
+$('homeBtn').onclick = () => location.reload();
 
-// mémorise le prénom choisi sur cet appareil (pour retrouver son tirage en rouvrant le lien)
-const store = {
-  get: () => { try { return localStorage.getItem('ss_' + seed); } catch (e) { return null; } },
-  set: v => { try { localStorage.setItem('ss_' + seed, v); } catch (e) {} },
-  clear: () => { try { localStorage.removeItem('ss_' + seed); } catch (e) {} },
+/* ---------- Boutons de l'accueil / salle d'attente ---------- */
+$('createBtn').onclick = () => {
+  if (typeof Peer === 'undefined') return setMsg("Impossible de charger la librairie en ligne (pas d'Internet ?) 😕");
+  const name = readName(); if (name) createRoom(name);
+};
+$('joinBtn').onclick = () => {
+  if (typeof Peer === 'undefined') return setMsg("Impossible de charger la librairie en ligne (pas d'Internet ?) 😕");
+  const name = readName(); if (!name) return;
+  const code = $('codeInput').value.trim().toUpperCase();
+  if (!/^[A-Z]{4}$/.test(code)) { setMsg('Le code fait 4 lettres 🔤'); $('codeInput').focus(); return; }
+  joinRoom(name, code);
+};
+$('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') ($('codeInput').value ? $('joinBtn') : $('createBtn')).click(); });
+$('codeInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('joinBtn').click(); });
+$('codeInput').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, ''); });
+$('startBtn').onclick = startGameHost;
+$('leaveBtn').onclick = () => { try { peer && peer.destroy(); } catch (e) {} location.reload(); };
+$('shareBtn').onclick = async () => {
+  const link = location.href.split('#')[0] + '#' + roomCode;
+  try { await navigator.clipboard.writeText(link); }
+  catch (e) { prompt('Copie ce lien :', link); }
+  $('shareBtn').textContent = '✅ Lien copié !';
+  setTimeout(() => $('shareBtn').textContent = "🔗 Copier le lien d'invitation", 2000);
 };
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* ---------- Démarrage ---------- */
+$('nameInput').value = ls.get('ss_name') || '';
+const hashCode = (location.hash.match(/^#([A-Za-z]{4})$/) || [])[1];
+if (hashCode) {
+  $('codeInput').value = hashCode.toUpperCase();
+  setMsg('Entre ton prénom, puis clique sur « Rejoindre » 👆', true);
 }
-
-/* ---------- Le lien de la partie : prénoms + graine dans l'adresse ---------- */
-const enc = o => btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-const dec = s => JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g, '+').replace(/_/g, '/')))));
-let gameLink = '';
-
-$('startBtn').onclick = () => {
-  const s = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-  gameLink = location.href.split('#')[0] + '#g=' + enc({ n: players.map(p => p.name), s });
-  $('linkBox').value = gameLink;
-  $('fileWarn').classList.toggle('hidden', location.protocol !== 'file:');
-  $('setup').classList.add('hidden');
-  $('share').classList.remove('hidden');
-  confetti(20);
-};
-$('copyBtn').onclick = async () => {
-  try { await navigator.clipboard.writeText(gameLink); }
-  catch (e) { $('linkBox').select(); document.execCommand('copy'); }
-  $('copyBtn').textContent = '✅ Lien copié !';
-  setTimeout(() => $('copyBtn').textContent = '📋 Copier le lien', 2000);
-};
-$('linkBox').onclick = e => e.target.select();
-$('openBtn').onclick = () => { location.href = gameLink; location.reload(); };
-$('backBtn').onclick = e => {
-  e.preventDefault();
-  $('share').classList.add('hidden');
-  $('setup').classList.remove('hidden');
-};
-
-// Ouverture d'un lien de partie : on affiche directement le jeu
-function initFromLink() {
-  const m = location.hash.match(/^#g=(.+)$/);
-  if (!m) return false;
-  try {
-    const d = dec(m[1]);
-    if (!Array.isArray(d.n) || d.n.length < 3 || !d.s) return false;
-    players = d.n.map((n, i) => ({ name: String(n).slice(0, 14), color: COLORS[i % COLORS.length] }));
-    seed = String(d.s);
-  } catch (e) { return false; }
-  assignment = makeAssignment(players.map(p => p.name), seed);
-  $('setup').classList.add('hidden');
-  $('subtitle').textContent = 'Clique sur ton gobelet et découvre à qui tu offres un cadeau ! 🎁';
-  const saved = store.get();
-  if (saved && assignment[saved]) { me = saved; showEnd(); }   // déjà tiré : on retrouve son résultat
-  else { $('game').classList.remove('hidden'); startGame(); }
-  return true;
-}
-
-if (!initFromLink()) refreshSetup();
+try { const m = sessionStorage.getItem('ss_msg'); if (m) { setMsg(m); sessionStorage.removeItem('ss_msg'); } } catch (e) {}
+try {   // retrouver son dernier tirage (si la page a été fermée)
+  const last = JSON.parse(ls.get('ss_result') || 'null');
+  if (last && last.target && Date.now() - last.t < 3 * 24 * 3600 * 1000) {
+    $('lastBtn').textContent = `👀 Revoir mon dernier tirage (room ${last.code})`;
+    $('lastBtn').classList.remove('hidden');
+    $('lastBtn').onclick = () => { me = last.name; myTarget = last.target; showEnd(); showReveal(myTarget); };
+  }
+} catch (e) {}
 </script>
 </body>
 </html>
